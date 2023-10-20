@@ -3,8 +3,6 @@ from osdatahub import Extent
 from osdatahub import NGD
 from osdatahub import Extent
 import geopandas as gpd
-import shapely as shp
-
 
 def bb(tif):
     t = rasterio.open(tif)
