@@ -21,7 +21,7 @@ def urban_mask(gdf): # creates an urban mask of villages from os api
     m = m.buffer(10)
     return m
 
-def wall_mask(gdf):
+def wall_subset(gdf): # takes the subset based on built obstructions
     w = gpd.GeoDataFrame.from_features(gdf, crs="EPSG:27700")
     #subset based on 'Built Obstruction'
     w = (w.loc[w['description'] == 'Built Obstruction'])
