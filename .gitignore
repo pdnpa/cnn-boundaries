@@ -1,4 +1,5 @@
 .ipynb_checkpoints/
 .env
 content/tifs/
+keras
 *.pyc
