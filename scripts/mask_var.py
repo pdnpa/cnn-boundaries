@@ -45,6 +45,7 @@ interpolation:
     - None: nothing done with missing data (turned into 0)
     - 'nearest': using label of nearest pixels (takes bit of extra time)
 '''
+
 def convert_shp_mask_to_raster(df_shp, col_name='theme',
                                 resolution=( -0.6713209989263084, 0.6713215494092012),
                                 interpolation=None, 
