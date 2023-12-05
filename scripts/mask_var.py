@@ -16,7 +16,11 @@ def bb(lyr): # creates a BBOX of input layers
     
 def sub(d): # subset the land df with made surfaces or gardens
     db = (d.loc[(d['theme'] == 'Land')]) # subset land
-    db = (db.loc[(db['description'] == 'Made Surface') | (db['description'] == 'Residential Garden')]) # subset the subset of land
+    db = (db.loc[(db['description'] == 'Made Surface') | 
+                 (db['description'] == 'Residential Garden') | 
+                 (db['description'] =='Non-Coniferous Trees') | 
+                 (db['description'] == 'Coniferous Trees') | 
+                 (db['description'] == 'Mixed Trees')]) # subset the subset of land
     d = (d.loc[(d['theme'] != 'Land')])   # drop the land from the origianl df
     d = pd.concat([d, db])
     return d
@@ -36,6 +40,7 @@ def wall_subset(gdf): # takes the subset based on built obstructions
     #subset based on 'Built Obstruction'
     w = (w.loc[w['description'] == 'Built Obstruction'])
     return w
+
 
 '''
 Turn gdf of shape file polygon into a raster file. Possibly store & plot.
