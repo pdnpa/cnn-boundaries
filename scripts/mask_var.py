@@ -41,7 +41,6 @@ def wall_subset(gdf): # takes the subset based on built obstructions
     w = (w.loc[w['description'] == 'Built Obstruction'])
     return w
 
-
 '''
 Turn gdf of shape file polygon into a raster file. Possibly store & plot.
 Assumes col_name is a numeric column with class labels.
