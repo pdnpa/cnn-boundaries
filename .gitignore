@@ -2,7 +2,7 @@
 .env
 content/tifs/
 notebooks/tmp_checkpoints/
-keras
 mapreader
 model_output
+.conda
 *.pyc
