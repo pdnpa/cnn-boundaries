@@ -22,7 +22,6 @@ class Mask:
 
     def os_mask(self): # api call
         bbox = self.lyr
-        polygon = bbox.polygon
         dict_os_layers = {}
         gdf = gpd.GeoDataFrame()
         for key, value in self.collections.items():
@@ -42,7 +41,7 @@ class Mask:
         sub_b = gdf.loc[~gdf['theme'].isin([i for i in self.subsets.keys()])] # drop the land from the origianl df
         gdf = pd.concat([sub_a, sub_b])
         gdf = urban_mask(gdf)
-        gdf = gpd.clip(gdf, polygon)
+        gdf = gpd.clip(gdf, bbox.polygon)
         return(gdf)
 
     def bb(self): # creates a BBOX of input layers
