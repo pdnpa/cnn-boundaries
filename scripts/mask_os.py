@@ -35,11 +35,13 @@ class Mask:
                 print(ngd_ + " query contains the following number of features:" + str(dict_os_layers[ngd_]['numberReturned']))
             else:
                 print(key + " query is empty!")
+        print("-- Total OS Collections Data Set Contains: " + str(gdf.shape[0]) + " values" )
         for i in self.subsets.values():
             x = list(i)
         sub_a = gdf.loc[gdf['description'].isin(x)] # extract the subsets
         sub_b = gdf.loc[~gdf['theme'].isin([i for i in self.subsets.keys()])] # drop the land from the origianl df
         gdf = pd.concat([sub_a, sub_b])
+        print("-- Final Subsetted Data Set Contains: " + str(gdf.shape[0]))
         gdf = urban_mask(gdf)
         gdf = gpd.clip(gdf, bbox.polygon)
         return(gdf)
