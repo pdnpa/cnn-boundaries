@@ -154,28 +154,17 @@ class CombinedMask:
         self.subsets = subsets
         self.merged_mask = None  # Initialize merged_mask as an instance variable
 
-    def create_white_mask(self):
-        # Create an instance of Mask
-        mask_instance = Mask(self.lyr, self.collections, self.subsets)
-
-        # Create a GeoDataFrame with a single polygon covering the extent of the raster
-        bbox = mask_instance.bb().polygon
-        white_mask_gdf = gpd.GeoDataFrame(geometry=[bbox], crs="EPSG:27700")
-        white_mask_gdf['pdnp'] = 255  # Set the desired value for the mask
-
-        return white_mask_gdf
-
     def merge_masks(self):
         # Create instances of Mask and Text_Mask
         mask_instance = Mask(self.lyr, self.collections, self.subsets)
-        white_mask_instance = CombinedMask.create_white_mask(self)
+        text_mask_instance = Text_Mask(self.lyr)
 
         # Obtain the individual masks
         os_mask = mask_instance.os_mask()
+        text_mask = text_mask_instance.k_mask()
 
-        # Create a constant pdnp column for all polygons in the white mask
-        white_mask_instance['pdnp'] = 255
-
+        # Create a constant pdnp column for all polygons in the text mask
+        text_mask['pdnp'] = 1
         # Merge the os_mask polygons using unary_union, preserving the 'pdnp' column
         merged_os_mask = os_mask.dissolve(by='pdnp', aggfunc='first').unary_union
         # Create a GeoDataFrame from the merged_os_mask geometry
@@ -185,12 +174,15 @@ class CombinedMask:
         common_crs = "EPSG:27700"  # Choose a common CRS, you may change this
         merged_os_mask_gdf = merged_os_mask_gdf.to_crs(common_crs)
 
-        # Reproject os_mask to the common CRS
+        # Reproject os_mask_gdf to the common CRS
         os_mask_gdf = os_mask.to_crs(common_crs)
         os_mask_gdf['pdnp'] = 1
 
+        # Reproject text_mask to the common CRS
+        text_mask = text_mask.to_crs(common_crs)
+
         # Concatenate the GeoDataFrames
-        merged_mask = gpd.GeoDataFrame(pd.concat([merged_os_mask_gdf, os_mask_gdf, white_mask_instance], ignore_index=True))
+        merged_mask = gpd.GeoDataFrame(pd.concat([merged_os_mask_gdf, os_mask_gdf, text_mask], ignore_index=True))
         # Dissolve the merged mask
         dissolved_merged_mask = merged_mask.dissolve(by='pdnp', as_index=False)
 
@@ -208,7 +200,7 @@ class CombinedMask:
             self.merged_mask = dissolved_merged_mask
 
         return self.merged_mask
-
+    
     def export_and_combine(self, output_path):
         # Get metadata from the original raster
         with rasterio.open(self.lyr) as src:
@@ -240,7 +232,7 @@ class CombinedMask:
             self.merged_mask,
             output_path,
             attribute=None,
-            fill_value=0,  # Use 0 for areas without the mask
+            fill_value=0,
             resampling=Resampling.nearest
         )
 
@@ -249,7 +241,7 @@ class CombinedMask:
 
         # Combine the exported mask with the underlying raster
         rasterizer.combine_with_underlying(output_path, output_path)
-
+    
 class GeoDataFrameRasterizer:
     def __init__(self, lyr_meta):
         self.lyr_meta = lyr_meta
@@ -275,11 +267,6 @@ class GeoDataFrameRasterizer:
 
         # Rasterize the GeoDataFrame onto the blank raster
         mask = geometry_mask(gdf.geometry, out_shape=self.shape, transform=self.lyr_meta['transform'], invert=True)
-
-        invalid_geometries = gdf[gdf['geometry'].is_empty]
-        if not invalid_geometries.empty:
-            print("Warning: GeoDataFrame has empty or invalid geometries.")
-            print(invalid_geometries)
 
         # Ensure that the mask has integer values
         mask = mask.astype(self.lyr_meta['dtype'])
@@ -328,13 +315,9 @@ class GeoDataFrameRasterizer:
 
         # Convert mask to integer before combining
         mask_data = mask_data.astype(int)
-        mask_data = mask_data.astype(np.uint8)
 
         # Create a combined raster with the same properties as the underlying raster
         combined_data = np.where((underlying_data > 0) | (mask_data > 0), 1, 0)
-
-        # Ensure that areas where both masks are present are labeled as 2
-        combined_data[(underlying_data > 0) & (mask_data > 0)] = 2
 
         # Write the combined raster to a new GeoTIFF file
         with rasterio.open(
@@ -350,3 +333,5 @@ class GeoDataFrameRasterizer:
         ) as dst:
             dst.write(combined_data, 1)
 
+        print("Mask Values:", np.unique(mask_data))
+        print("Underlying Values:", np.unique(underlying_data))
