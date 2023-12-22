@@ -1,18 +1,4 @@
 name: .conda
 dependencies:
   - python=3.9
-  - numpy
-  - scipy
-  - scikit-learn
-  - seaborn
-  - geopandas
-  - pandas
-  - matplotlib
-  - rasterio
-  - jupyter
-  - xarray
-  - tqdm
-  - rioxarray
-  - pillow=6.2.1
-  - pytorch-lightning
 prefix: .\cnn-boundaries\.conda
