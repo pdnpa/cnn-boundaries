@@ -1,4 +1,0 @@
-name: .conda
-dependencies:
-  - python=3.9
-prefix: .\cnn-boundaries\.conda
