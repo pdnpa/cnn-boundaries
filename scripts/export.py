@@ -68,4 +68,4 @@ def convert_shp_mask_to_raster(df_shp, col_name='theme',
     if plot_raster:
         cube[col_name].plot()
 
-    return cube 
+    return cube
