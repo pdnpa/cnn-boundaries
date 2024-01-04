@@ -192,9 +192,13 @@ class CombinedMask:
         raster_plotter_obj.plot_over_raster(combined_gdf)
 
     # if you want to export as a shp for testing call: combined_mask.export_combined_mask('filepath')
-    def export_combined_raster(self, output_file):
+    def export_combined_mask(self, output_path):
         # Create the combined mask GeoDataFrame
         combined_gdf = self.create_combined_mask()
+
+        # Export combined GeoDataFrame to shapefile
+        shp_filename = os.path.join(output_path, os.path.splitext(os.path.basename(self.lyr))[0] + '.shp')
+        combined_gdf.to_file(shp_filename)
 
         # Read the original raster file using rasterio
         with rasterio.open(self.lyr) as src:
@@ -209,18 +213,41 @@ class CombinedMask:
             # Get the union of all geometries in the combined GeoDataFrame
             geometry_union = combined_gdf.unary_union
 
-            # Apply the mask on the original raster
-            masked, transform = rasterio.mask.mask(src, [geometry_union], crop=True, nodata=0)
+            # Check if the original raster has only one band
+            if src.count == 1:
+                # If the original raster has one band, use only the first band for masking
+                masked, transform = rasterio.mask.mask(src, [geometry_union], crop=True, nodata=0)
+                masked = masked.squeeze()  # Remove singleton dimensions
+            else:
+                # If the original raster has multiple bands, use all bands for masking
+                masked, transform = rasterio.mask.mask(src, [geometry_union], crop=True, nodata=0)
+                masked = masked[0]  # Select the first band
+
+            # Print dimensions and shapes for debugging
+            print("Original raster shape:", src.shape)
+            print("Masked array shape:", masked.shape)
 
             # Reshape the masked array to have only one band
-            masked = masked[0]  # Select the first band
+            masked = masked.squeeze()  # Remove singleton dimensions
+            print("Squeezed masked array shape:", masked.shape)
 
             # Create a new array filled with 255 (white)
             blank_array = np.full_like(masked, fill_value=255)
 
+            # Ensure dimensions match before copying values
+            min_height = min(masked.shape[0], src.shape[0])
+            min_width = min(masked.shape[1], src.shape[1])
+
+            # Print dimensions for debugging
+            print("Minimum height:", min_height)
+            print("Minimum width:", min_width)
+
             # Copy original values to the blank array where the mask is zero
-            blank_array[masked == 0] = src.read(1)[masked == 0]
+            blank_array[:min_height, :min_width][masked[:min_height, :min_width] == 0] = src.read(1)[:min_height, :min_width][masked[:min_height, :min_width] == 0]
 
             # Write the modified raster to a new file
-            with rasterio.open(output_file, 'w', **new_meta) as dst:
+            raster_filename = os.path.join(output_path, os.path.splitext(os.path.basename(self.lyr))[0] + '_combined.tif')
+            with rasterio.open(raster_filename, 'w', **new_meta) as dst:
                 dst.write(blank_array, 1)
+
+        return shp_filename, raster_filename
