@@ -202,52 +202,64 @@ class CombinedMask:
 
         # Read the original raster file using rasterio
         with rasterio.open(self.lyr) as src:
+            ## Some asserts to ensure that src is as expected:
+            assert src.count == 3, f'The raster must have 3 bands (but currently has {src.count})'
+            assert src.meta['dtype'] == 'uint8', f'The raster must have dtype uint8 (but currently has {src.meta["dtype"]})'
+            assert len(src.shape), f'Expected 2 dimensions, got {len(src.shape)}'
+            full_shape_src = (src.count, src.shape[0], src.shape[1])
+
             # Convert the combined GeoDataFrame to a raster
             cube = make_geocube(combined_gdf, measurements=['pdnp'], resolution=src.res, fill=0)
             combined_raster = cube['pdnp'].astype('uint8')
 
             # Update metadata for the new raster
             new_meta = src.meta.copy()
-            new_meta.update({'count': 1, 'dtype': 'uint8'})
+            # new_meta.update({'count': 1, 'dtype': 'uint8'})  ## don't need this anymore
 
             # Get the union of all geometries in the combined GeoDataFrame
             geometry_union = combined_gdf.unary_union
 
-            # Check if the original raster has only one band
-            if src.count == 1:
-                # If the original raster has one band, use only the first band for masking
-                masked, transform = rasterio.mask.mask(src, [geometry_union], crop=True, nodata=0)
-                masked = masked.squeeze()  # Remove singleton dimensions
-            else:
-                # If the original raster has multiple bands, use all bands for masking
-                masked, transform = rasterio.mask.mask(src, [geometry_union], crop=True, nodata=0)
-                masked = masked[0]  # Select the first band
+            ## because we now ensure that src.count == 3, we don't need to check for this anymore
+            # # Check if the original raster has only one band
+            # if src.count == 1:
+            #     # If the original raster has one band, use only the first band for masking
+            #     masked, transform = rasterio.mask.mask(src, [geometry_union], crop=True, nodata=0)
+            #     masked = masked.squeeze()  # Remove singleton dimensions
+            # else:
+            # If the original raster has multiple bands, use all bands for masking
+            masked, transform = rasterio.mask.mask(src, [geometry_union], crop=True, nodata=0)
+            # masked = masked[0]  # Select the first band
 
-            # Print dimensions and shapes for debugging
-            print("Original raster shape:", src.shape)
-            print("Masked array shape:", masked.shape)
+            
+            # # Print dimensions and shapes for debugging
+            # print("Original raster shape:", src.shape)
+            # print("Masked array shape:", masked.shape)
 
             # Reshape the masked array to have only one band
             masked = masked.squeeze()  # Remove singleton dimensions
             print("Squeezed masked array shape:", masked.shape)
 
+            ## Ensure that they are the same dimension: (not the same shape exactly because they might be 1-2 pixels different)
+            assert len(masked.shape) == 3 and len(full_shape_src) == 3, f'Expected 3 dimensions, got {len(masked.shape)} and {len(full_shape_src)}'
+
             # Create a new array filled with 255 (white)
             blank_array = np.full_like(masked, fill_value=255)
 
-            # Ensure dimensions match before copying values
-            min_height = min(masked.shape[0], src.shape[0])
-            min_width = min(masked.shape[1], src.shape[1])
+            # Ensure dimensions match before copying values (not of [0] because that is the number of bands)
+            min_height = min(masked.shape[1], full_shape_src[1])
+            min_width = min(masked.shape[2], full_shape_src[2])
 
             # Print dimensions for debugging
             print("Minimum height:", min_height)
             print("Minimum width:", min_width)
 
             # Copy original values to the blank array where the mask is zero
-            blank_array[:min_height, :min_width][masked[:min_height, :min_width] == 0] = src.read(1)[:min_height, :min_width][masked[:min_height, :min_width] == 0]
+            ## I've added extra : for first dimension (Bands)
+            blank_array[:, :min_height, :min_width][masked[:, :min_height, :min_width] == 0] = src.read(1)[:, :min_height, :min_width][masked[:, :min_height, :min_width] == 0]
 
             # Write the modified raster to a new file
             raster_filename = os.path.join(output_path, os.path.splitext(os.path.basename(self.lyr))[0] + '_combined.tif')
             with rasterio.open(raster_filename, 'w', **new_meta) as dst:
-                dst.write(blank_array, 1)
+                dst.write(blank_array)
 
         return shp_filename, raster_filename
