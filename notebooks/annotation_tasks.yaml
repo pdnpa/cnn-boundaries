@@ -19,5 +19,5 @@ tasks:
 paths:
   task_test_OS_maps_001:
     patch_paths: "../content/tifs/patches/"
-    parent_paths: "../content/tifs/*.tif"
+    parent_paths: "../content/tifs/masked/*.tif"
     annot_dir: "../content/annotations_1950/"
