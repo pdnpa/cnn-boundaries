@@ -254,9 +254,8 @@ class CombinedMask:
             print("Minimum width:", min_width)
 
             # Copy original values to the blank array where the mask is zero
-            ## I've added extra : for first dimension (Bands)
-            blank_array[:, :min_height, :min_width][masked[:, :min_height, :min_width] == 0] = src.read(1)[:, :min_height, :min_width][masked[:, :min_height, :min_width] == 0]
-
+            # I've added extra : for first dimension (Bands)
+            blank_array[:, :min_height, :min_width][masked[:, :min_height, :min_width] == 0] = src.read([1, 2, 3])[:, :min_height, :min_width][masked[:, :min_height, :min_width] == 0]
             # Write the modified raster to a new file
             raster_filename = os.path.join(output_path, os.path.splitext(os.path.basename(self.lyr))[0] + '_combined.tif')
             with rasterio.open(raster_filename, 'w', **new_meta) as dst:
