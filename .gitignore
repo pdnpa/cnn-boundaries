@@ -1,6 +1,6 @@
 .ipynb_checkpoints/
 .env
-.pkl
+*.pkl
 content/tifs/
 notebooks/tmp_checkpoints/
 mapreader
