@@ -219,21 +219,8 @@ class CombinedMask:
             # Get the union of all geometries in the combined GeoDataFrame
             geometry_union = combined_gdf.unary_union
 
-            ## because we now ensure that src.count == 3, we don't need to check for this anymore
-            # # Check if the original raster has only one band
-            # if src.count == 1:
-            #     # If the original raster has one band, use only the first band for masking
-            #     masked, transform = rasterio.mask.mask(src, [geometry_union], crop=True, nodata=0)
-            #     masked = masked.squeeze()  # Remove singleton dimensions
-            # else:
-            # If the original raster has multiple bands, use all bands for masking
             masked, transform = rasterio.mask.mask(src, [geometry_union], crop=True, nodata=0)
             # masked = masked[0]  # Select the first band
-
-            
-            # # Print dimensions and shapes for debugging
-            # print("Original raster shape:", src.shape)
-            # print("Masked array shape:", masked.shape)
 
             # Reshape the masked array to have only one band
             masked = masked.squeeze()  # Remove singleton dimensions
