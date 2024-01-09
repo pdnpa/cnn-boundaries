@@ -240,8 +240,7 @@ class CombinedMask:
             print("Minimum height:", min_height)
             print("Minimum width:", min_width)
 
-            # Copy original values to the blank array where the mask is zero
-            # I've added extra : for first dimension (Bands)
+            # Copy original values to the blank array where the mask is zero | added extra : for first dimension (Bands)
             blank_array[:, :min_height, :min_width][masked[:, :min_height, :min_width] == 0] = src.read([1, 2, 3])[:, :min_height, :min_width][masked[:, :min_height, :min_width] == 0]
             # Write the modified raster to a new file
             raster_filename = os.path.join(output_path, os.path.splitext(os.path.basename(self.lyr))[0] + '_combined.tif')
