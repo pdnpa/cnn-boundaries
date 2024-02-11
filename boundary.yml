@@ -1,6 +1,5 @@
-name: C:\Users\alexad\Documents\GitHub\cnn-boundaries\.conda
+name: boundary
 channels:
-  - conda-forge
   - defaults
 dependencies:
   - asttokens=2.4.1=pyhd8ed1ab_0
@@ -231,4 +230,4 @@ dependencies:
       - wrapt==1.14.1
       - xarray==2023.12.0
       - yarl==1.9.4
-prefix: C:\Users\alexad\Documents\GitHub\cnn-boundaries\.conda
+prefix: /home/david/anaconda3/envs/boundary
