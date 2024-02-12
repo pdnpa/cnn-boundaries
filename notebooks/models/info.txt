@@ -1,3 +1,4 @@
 checkpoint_25.pkl,0.05644
 checkpoint_16.pkl,0.03236
 checkpoint_3.pkl,0.00609
+checkpoint_8.pkl,0.07465
