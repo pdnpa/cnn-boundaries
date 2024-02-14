@@ -3,6 +3,7 @@
 content/tifs/
 notebooks/tmp_checkpoints/
 model_output
+QGIS
 .conda
 *.pyc
 *.pkl
