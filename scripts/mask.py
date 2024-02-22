@@ -157,10 +157,11 @@ class RasterPlotter:
         return
 
 class CombinedMask:
-    def __init__(self, lyr, collections, subsets=None):
+    def __init__(self, lyr, collections, subsets=None, input_image_path=None):
         self.lyr = lyr
         self.collections = collections
         self.subsets = subsets
+        self.input_image_path = input_image_path  # Store input image path
 
     def create_combined_mask(self):
         # Create Mask object
@@ -183,6 +184,35 @@ class CombinedMask:
         combined_gdf['pdnp'] = 1
 
         return combined_gdf
+    
+    def modify_combined_mask(self, combined_gdf):
+        if self.input_image_path:
+            # Load the image from the provided input image path
+            input_image_path = self.input_image_path
+        else:
+            raise ValueError("Input image path is not provided.")
+
+        image = gdal.Open(input_image_path)
+        
+        #  Read the image data
+        image_data = image.ReadAsArray()
+
+        # Convert to RGB format
+        image_rgb = np.dstack((image_data[0], image_data[1], image_data[2]))
+
+        # Define the orange color range
+        lower_orange = np.array([100, 30, 0])
+        upper_orange = np.array([255, 200, 150])
+
+        # Create a mask to isolate orange areas
+        mask = cv2.inRange(image_rgb, lower_orange, upper_orange)
+
+        # Change the color of the orange areas to white
+        image_rgb[mask > 0] = (255, 255, 255)
+
+        # Update the combined GeoDataFrame with modified mask
+        # Assuming here combined_gdf is a GeoDataFrame with a geometry column representing the mask
+        combined_gdf['geometry'] = [Polygon(shape) for shape, value in rasterio.features.shapes(mask)]
 
     def plot_combined_mask(self):
         combined_gdf = self.create_combined_mask()
