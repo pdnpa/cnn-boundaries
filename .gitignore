@@ -1,9 +1,9 @@
 .ipynb_checkpoints/
 .env
 content/tifs/
+content/masks/
 notebooks/tmp_checkpoints/
 model_output
 QGIS
-.conda
 *.pyc
 *.pkl
