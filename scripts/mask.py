@@ -185,35 +185,6 @@ class CombinedMask:
 
         return combined_gdf
     
-    def modify_combined_mask(self, combined_gdf):
-        if self.input_image_path:
-            # Load the image from the provided input image path
-            input_image_path = self.input_image_path
-        else:
-            raise ValueError("Input image path is not provided.")
-
-        image = gdal.Open(input_image_path)
-        
-        #  Read the image data
-        image_data = image.ReadAsArray()
-
-        # Convert to RGB format
-        image_rgb = np.dstack((image_data[0], image_data[1], image_data[2]))
-
-        # Define the orange color range
-        lower_orange = np.array([100, 30, 0])
-        upper_orange = np.array([255, 200, 150])
-
-        # Create a mask to isolate orange areas
-        mask = cv2.inRange(image_rgb, lower_orange, upper_orange)
-
-        # Change the color of the orange areas to white
-        image_rgb[mask > 0] = (255, 255, 255)
-
-        # Update the combined GeoDataFrame with modified mask
-        # Assuming here combined_gdf is a GeoDataFrame with a geometry column representing the mask
-        combined_gdf['geometry'] = [Polygon(shape) for shape, value in rasterio.features.shapes(mask)]
-
     def plot_combined_mask(self):
         combined_gdf = self.create_combined_mask()
 
@@ -222,12 +193,12 @@ class CombinedMask:
         raster_plotter_obj.plot_over_raster(combined_gdf)
 
     # if you want to export as a shp for testing call: combined_mask.export_combined_mask('filepath')
-    def export_combined_mask(self, output_path):
+    def export_combined_mask(self, raster_output_path, shp_output_path):
         # Create the combined mask GeoDataFrame
         combined_gdf = self.create_combined_mask()
 
         # Export combined GeoDataFrame to shapefile
-        shp_filename = os.path.join(output_path, os.path.splitext(os.path.basename(self.lyr))[0] + '.shp')
+        shp_filename = os.path.join(shp_output_path, os.path.splitext(os.path.basename(self.lyr))[0] + '.shp')
         combined_gdf.to_file(shp_filename)
 
         # Read the original raster file using rasterio
@@ -273,7 +244,7 @@ class CombinedMask:
             # Copy original values to the blank array where the mask is zero | added extra : for first dimension (Bands)
             blank_array[:, :min_height, :min_width][masked[:, :min_height, :min_width] == 0] = src.read([1, 2, 3])[:, :min_height, :min_width][masked[:, :min_height, :min_width] == 0]
             # Write the modified raster to a new file
-            raster_filename = os.path.join(output_path, os.path.splitext(os.path.basename(self.lyr))[0] + '_combined.tif')
+            raster_filename = os.path.join(raster_output_path, os.path.splitext(os.path.basename(self.lyr))[0] + '_combined.tif')
             with rasterio.open(raster_filename, 'w', **new_meta) as dst:
                 dst.write(blank_array)
 
