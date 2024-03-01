@@ -1,6 +1,22 @@
 import os, sys, copy
-from typing import Collection
+import tensorflow as tf
 
+# Enable GPU memory growth 
+def enable_gpu_memory_growth():
+    gpus = tf.config.list_physical_devices('GPU')
+    if gpus:
+        try:
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            print("Enabled GPU memory growth")
+        except RuntimeError as e:
+            # Memory growth must be set at program startup
+            print(f"Failed to set memory growth: {e}")
+
+# Call the function 
+enable_gpu_memory_growth()
+
+from typing import Collection
 from osdatahub import Extent, NGD
 from dotenv import load_dotenv
 from shapely.geometry import Polygon, MultiPolygon
@@ -16,11 +32,12 @@ import pandas as pd
 import numpy as np
 import rasterio
 import keras_ocr
-import tensorflow as tf
+
 
 # Set API key, details from https://github.com/OrdnanceSurvey/osdatahub
 load_dotenv()
 key_os = os.environ['KEY']
+assert key_os, "API key not found in environment variables."
 
 class Mask:
     def __init__(self, lyr, collections, subsets = None):
@@ -116,9 +133,6 @@ class Text_Mask:
                 polygon = Polygon(coords)
                 polygons.append(polygon)
 
-                # Add a constant value to the list
-                #constant_column_values.append(1)  # You can use any constant value
-
         print("-- Detected " + str(len(polygons)) + " words or letters")
 
         # Create a GeoDataFrame with the correct CRS
@@ -149,7 +163,6 @@ class RasterPlotter:
 
             # Plot the GeoDataFrame over the raster
             gdf.plot(ax=ax, facecolor='white', edgecolor='white', linewidth=1)
-            
             plt.show()
 
         if gdf is None or gdf.empty:
@@ -249,3 +262,51 @@ class CombinedMask:
                 dst.write(blank_array)
 
         return shp_filename, raster_filename
+    
+
+if __name__ == "__main__":
+    load_dotenv()
+    key_os = os.getenv('KEY')
+    assert key_os, "API key not found in environment variables."
+
+    # define os collections for urban mask aggreation
+    collections = {'buildings' : 'bld-fts-buildingpart-1',
+                'sites' : 'lus-fts-site-1', 
+                'railways' : 'trn-fts-rail-1', 
+                'land' : 'lnd-fts-land-1',
+                'water' : 'wtr-fts-waterpoint-1',
+                'road' : 'trn-fts-roadline-1',
+                'track' : 'trn-fts-roadtrackorpath-1',
+                'waterlink' : 'wtr-ntwk-waterlink-1',
+                'waterlinkset' : 'wtr-ntwk-waterlinkset-1',
+                'road-track-path' : 'trn-ntwk-pathlink-1'}
+
+    # if specifics are required from 'collection' define which to keep from 'description' column
+    subsets = {'Land' : ['Made Surface', 
+                        'Residential Garden', 
+                        'Non-Coniferous Trees', 
+                        'Coniferous Trees', 
+                        'Mixed Trees']}
+    
+    # replace with all 500 1 km2 (eventually)
+    tiles = ["SK1070.tif", "SK1468.tif", "SK1469.tif", "SK1474.tif", "SK1476.tif",
+            "SK1567.tif", "SK1570.tif", "SK1668.tif", "SK1678.tif", "SK1767.tif",
+            "SK1768.tif", "SK1867.tif", "SK1868.tif"]
+
+    shp_folder = "../QGIS/masks/"  # output for shp mask
+    raster_output_folder = "../content/tifs/masked/"  # output for raster mask
+
+    # Iterate over each tile and export combined mask
+    for tile in tiles:
+        tile_path = os.path.join("../content/tifs/1k_tifs/", tile)  # Adjust the path to match your directory structure
+
+        # Create CombinedMask object
+        combined_mask = CombinedMask(tile_path, collections, subsets)
+
+        # Export combined mask for the current tile
+        shp_filename, raster_filename = combined_mask.export_combined_mask(raster_output_folder, shp_folder)
+
+        print(f"Exported for {tile}:")
+        print("Shapefile exported to:", shp_filename)
+        print("Raster file exported to:", raster_filename)
+        print("=" * 50)
