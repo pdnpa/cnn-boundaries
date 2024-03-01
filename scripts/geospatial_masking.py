@@ -1,3 +1,10 @@
+'''
+Run this script to mask a geotiff file using;
+1. osdatahub (variables for data API call can be changed)
+2. Text mask using keras-ocr API
+This will output a geotiff file with the blank mask printed over the 
+original geotiff and shapefile of the mask used for analysis
+'''
 import os, sys, copy
 import tensorflow as tf
 
