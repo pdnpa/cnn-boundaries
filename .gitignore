@@ -4,6 +4,8 @@ content/tifs/
 content/masks/
 notebooks/tmp_checkpoints/
 model_output
+models_tutorial
+tboard_tutorial
 QGIS
 *.pyc
 *.pkl
