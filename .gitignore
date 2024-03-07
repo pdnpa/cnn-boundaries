@@ -2,10 +2,10 @@
 .env
 content/tifs/
 content/masks/
+notebooks/models_tutorial
+notebooks/tboard_tutorial
 notebooks/tmp_checkpoints/
 model_output
-models_tutorial
-tboard_tutorial
 QGIS
 *.pyc
 *.pkl
