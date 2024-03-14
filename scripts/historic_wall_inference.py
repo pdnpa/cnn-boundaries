@@ -1,10 +1,18 @@
 ## Functions for wall extraction from historic maps 
-
-
+import os
 import numpy as np
+import cv2
+import PIL.Image
+from skimage.transform import probabilistic_hough_line
+from skimage.feature import canny
+from skimage.filters import threshold_otsu
+from osgeo import gdal, osr
+import geopandas as gpd
+from shapely.geometry import LineString
+import rasterio
 import skimage.measure
-import PIL
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import matplotlib
 if tuple([int(x) for x in matplotlib.__version__.split('.')]) < (3, 5, 0):
     print(f'MPL version {matplotlib.__version__} is too old to support plt.axline(), so do not use this function or update to 3.5.0 or higher')
@@ -119,3 +127,85 @@ def find_start_and_end_of_inferred_lines(h, theta, d, arr_bin, min_duration=11):
     df_inferred_lines = pd.DataFrame(list_inferred_lines, columns=['x', 'y'])
 
     return list_inferred_lines, df_inferred_lines
+
+def save_image(image_rgb, source_image, output_file):
+    """
+    Save the processed image to a file.
+    """
+    driver = gdal.GetDriverByName('GTiff')
+    output_dataset = driver.Create(output_file, image_rgb.shape[1], image_rgb.shape[0], 3, gdal.GDT_Byte)
+    if output_dataset is None:
+        raise ValueError(f"Could not create output file: {output_file}")
+    for i in range(3):
+        output_dataset.GetRasterBand(i + 1).WriteArray(image_rgb[:, :, i])
+    output_dataset.SetGeoTransform(source_image.GetGeoTransform())
+    output_dataset.SetProjection(source_image.GetProjection())
+    output_dataset = None
+
+def apply_line_mask(input_image_path, output_folder):
+    """
+    Apply a mask to filter out a specific color range and save the result.
+    """
+    image = gdal.Open(input_image_path)
+    image_data = image.ReadAsArray()
+    image_rgb = np.dstack((image_data[0], image_data[1], image_data[2]))
+
+    lower_orange = np.array([100, 30, 0])
+    upper_orange = np.array([255, 200, 150])
+    mask = cv2.inRange(image_rgb, lower_orange, upper_orange)
+    image_rgb[mask > 0] = (255, 255, 255)
+
+    # Adjusted line: Directly replace "_combined.tif" with "_line_mask.tif" in the filename
+    output_filename = os.path.basename(input_image_path).replace("_combined.tif", "_line_mask.tif")
+    output_file = os.path.join(output_folder, output_filename)
+    save_image(image_rgb, image, output_file)
+    
+def apply_hough_transform(input_image_path, output_folder):
+    """
+    Apply Hough Transform to detect lines, transform them to geographic coordinates, and save to a shapefile.
+    """
+    im = PIL.Image.open(input_image_path).convert("L")
+    ima = np.array(im)
+
+    # Canny edge detection and Hough Transform
+    edges = canny(ima, sigma=0.9, low_threshold=0.1, high_threshold=0.9)
+    lines = probabilistic_hough_line(edges, threshold=1, line_length=70, line_gap=10)
+
+    # Transform lines for shapefile
+    with rasterio.open(input_image_path) as src:
+        srs = src.crs
+        transformed_lines = [LineString([(src.xy(y, x)[0], src.xy(y, x)[1]) for x, y in line]) for line in lines]
+        gdf = gpd.GeoDataFrame(geometry=transformed_lines, crs=srs)
+        output_shapefile = os.path.join(output_folder, os.path.basename(input_image_path).replace("_line_mask.tif", "_hough_lines.shp"))
+        gdf.to_file(output_shapefile)
+    
+    return lines  # Return the raw line coordinates for visualization
+
+def visualize_process(input_image_path, lines):
+    im = PIL.Image.open(input_image_path).convert("L")
+    ima = np.array(im)
+    edges = canny(ima, sigma=0.9, low_threshold=0.1, high_threshold=0.9)
+
+    fig, axes = plt.subplots(1, 4, figsize=(20, 5), sharex=True, sharey=True)
+    ax = axes.ravel()
+
+    ax[0].imshow(im, cmap=cm.gray)
+    ax[0].set_title('Input image')
+
+    ax[1].imshow(ima > threshold_otsu(ima), cmap='Greys')
+    ax[1].set_title('Binarized image')
+
+    ax[2].imshow(edges, cmap=cm.gray)
+    ax[2].set_title('Canny edges')
+
+    ax[3].imshow(edges * 0)
+    for line in lines:
+        p0, p1 = line
+        ax[3].plot((p0[0], p1[0]), (p0[1], p1[1]), color='red')
+    ax[3].set_title('Probabilistic Hough')
+
+    for a in ax:
+        a.axis('off')
+
+    plt.tight_layout()
+    plt.show()
