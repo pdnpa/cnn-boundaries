@@ -227,9 +227,15 @@ def main():
 
     subsets = {'Land': ['Made Surface', 'Residential Garden', 'Non-Coniferous Trees', 'Coniferous Trees', 'Mixed Trees']}
     
-    tiles = ["SK1070.tif", "SK1468.tif", "SK1469.tif", "SK1474.tif", "SK1476.tif",
-             "SK1567.tif", "SK1570.tif", "SK1668.tif", "SK1678.tif", "SK1767.tif",
-             "SK1768.tif", "SK1867.tif", "SK1868.tif"]
+    # use this code if subset of tiles is required
+    #tiles = ["SK1070.tif", "SK1468.tif", "SK1469.tif", "SK1474.tif", "SK1476.tif",
+    #         "SK1567.tif", "SK1570.tif", "SK1668.tif", "SK1678.tif", "SK1767.tif",
+    #         "SK1768.tif", "SK1867.tif", "SK1868.tif"]
+
+    # Use os.listdir() or os.scandir() to dynamically generate a list of .tif files in the directory
+    # comment out if use subset tiles list above
+    tif_directory = "../content/tifs/1k_tifs/"
+    tiles = [f for f in os.listdir(tif_directory) if f.endswith('.tif')]
 
     shp_folder = "../QGIS/masks/"
     raster_output_folder = "../content/tifs/masked/"

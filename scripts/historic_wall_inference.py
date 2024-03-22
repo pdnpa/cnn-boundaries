@@ -165,10 +165,14 @@ def apply_hough_transform(input_image_path, output_folder):
     Apply Hough Transform to detect lines, transform them to geographic coordinates, and save to a shapefile.
     """
     im = PIL.Image.open(input_image_path).convert("L")
-    ima = np.array(im)
+    ima = np.array(im).reshape(im.size[::-1])
+    ima = ima[5:-5, 5:-5]
+
+    # Apply binarization with the predefined threshold
+    ima_bin = binarise_array(ima)
 
     # Canny edge detection and Hough Transform
-    edges = canny(ima, sigma=0.9, low_threshold=0.1, high_threshold=0.9)
+    edges = canny(ima_bin, sigma=0.9, low_threshold=0.1, high_threshold=0.9)
     lines = probabilistic_hough_line(edges, threshold=1, line_length=70, line_gap=10)
 
     # Transform lines for shapefile
@@ -183,7 +187,8 @@ def apply_hough_transform(input_image_path, output_folder):
 
 def visualize_process(input_image_path, lines):
     im = PIL.Image.open(input_image_path).convert("L")
-    ima = np.array(im)
+    ima = np.array(im).reshape(im.size[::-1])
+    ima = ima[5:-5, 5:-5]
     edges = canny(ima, sigma=0.9, low_threshold=0.1, high_threshold=0.9)
 
     fig, axes = plt.subplots(1, 4, figsize=(20, 5), sharex=True, sharey=True)
@@ -192,7 +197,7 @@ def visualize_process(input_image_path, lines):
     ax[0].imshow(im, cmap=cm.gray)
     ax[0].set_title('Input image')
 
-    ax[1].imshow(ima > threshold_otsu(ima), cmap='Greys')
+    ax[1].imshow(binarise_array(ima), cmap='Greys')
     ax[1].set_title('Binarized image')
 
     ax[2].imshow(edges, cmap=cm.gray)
