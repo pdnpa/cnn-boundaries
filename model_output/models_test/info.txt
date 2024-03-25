@@ -1,3 +1,0 @@
-checkpoint_9.pkl,0.13994
-checkpoint_8.pkl,0.59377
-checkpoint_9.pkl,0.58857
