@@ -7,7 +7,7 @@ content/1950-corridors/
 notebooks/models_train/
 notebooks/tboard_tutorial/
 notebooks/tmp_checkpoints/
-model_output/
 QGIS
 *.pyc
 *.pkl
+*.csv
