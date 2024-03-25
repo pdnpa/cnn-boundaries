@@ -2,10 +2,12 @@
 .env
 content/tifs/
 content/masks/
-notebooks/models_tutorial/
+content/predictions/
+content/1950-corridors/
+notebooks/models_train/
 notebooks/tboard_tutorial/
 notebooks/tmp_checkpoints/
-model_output
+model_output/
 QGIS
 *.pyc
 *.pkl
