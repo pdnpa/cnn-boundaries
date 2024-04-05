@@ -166,14 +166,14 @@ def apply_hough_transform(input_image_path, output_folder):
     """
     im = PIL.Image.open(input_image_path).convert("L")
     ima = np.array(im).reshape(im.size[::-1])
-    ima = ima[5:-5, 5:-5]
+    ima = ima[3:-3, 3:-3]
 
     # Apply binarization with the predefined threshold
     ima_bin = binarise_array(ima)
 
     # Canny edge detection and Hough Transform
     edges = canny(ima_bin, sigma=0.9, low_threshold=0.1, high_threshold=0.9)
-    lines = probabilistic_hough_line(edges, threshold=1, line_length=70, line_gap=10)
+    lines = probabilistic_hough_line(edges, threshold=1, line_length=40, line_gap=10)
 
     # Transform lines for shapefile
     with rasterio.open(input_image_path) as src:
@@ -223,7 +223,7 @@ def visualize_process_separately(input_image_path, output_base_path):
     im = PIL.Image.open(input_image_path).convert("L")
     ima = np.array(im)
     ima = np.array(im).reshape(im.size[::-1])
-    ima = ima[5:-5, 5:-5]
+    ima = ima[3:-3, 3:-3]
 
     
     # Binarize the image
@@ -234,7 +234,7 @@ def visualize_process_separately(input_image_path, output_base_path):
     edges = canny(ima, sigma=0.9, low_threshold=0.1, high_threshold=0.9)
     
     # Probabilistic Hough Transform
-    lines = probabilistic_hough_line(edges, threshold=1, line_length=70, line_gap=10)
+    lines = probabilistic_hough_line(edges, threshold=1, line_length=40, line_gap=10)
     
     # Step 1: Original Image
     plt.figure(figsize=(10, 10))
