@@ -142,7 +142,10 @@ class RasterPlotter:
         with rasterio.open(self.lyr) as src:
             fig, ax = plt.subplots(figsize=(10, 10))
             show(src, ax=ax, cmap='gray')
+            ax.set_xticks([])
+            ax.set_yticks([])
             gdf.plot(ax=ax, facecolor='white', edgecolor='white', linewidth=1)
+            plt.savefig("../content/example_data/SK1468_combined.png", dpi = 150, bbox_inches='tight', pad_inches=0) # adjust name manually needs fixing
             plt.show()
 
         if gdf is None or gdf.empty:

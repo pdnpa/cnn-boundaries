@@ -21,7 +21,7 @@ import pandas as pd
 
 def binarise_array(arr, binarise_threshold=190):
     assert arr.max() <= 255 and arr.min() >= 0
-    binarise_threshold = 190
+    binarise_threshold = 250
     assert binarise_threshold >= 0 and binarise_threshold <= 255
     arr_bin = arr < binarise_threshold  # (values go from 0 to 255)
     assert arr_bin.sum() / arr_bin.size < 0.5, 'Binarised image is not as sparse as expected, perhaps increase threshold?' 
@@ -150,8 +150,8 @@ def apply_line_mask(input_image_path, output_folder):
     image_data = image.ReadAsArray()
     image_rgb = np.dstack((image_data[0], image_data[1], image_data[2]))
 
-    lower_orange = np.array([100, 30, 0])
-    upper_orange = np.array([255, 200, 150])
+    lower_orange = np.array([160, 60, 30])
+    upper_orange = np.array([255, 255, 255])
     mask = cv2.inRange(image_rgb, lower_orange, upper_orange)
     image_rgb[mask > 0] = (255, 255, 255)
 
@@ -188,16 +188,19 @@ def apply_hough_transform(input_image_path, output_folder):
 def visualize_process(input_image_path, lines):
     im = PIL.Image.open(input_image_path).convert("L")
     ima = np.array(im).reshape(im.size[::-1])
-    ima = ima[5:-5, 5:-5]
+    # Assuming binarise_array is a function that you have defined elsewhere
+    ima_binarized = binarise_array(ima)  
     edges = canny(ima, sigma=0.9, low_threshold=0.1, high_threshold=0.9)
 
-    fig, axes = plt.subplots(1, 4, figsize=(20, 5), sharex=True, sharey=True)
+    # Adjust to 4 rows and 1 column for vertical layout
+    fig, axes = plt.subplots(4, 1, figsize=(6, 24))  
     ax = axes.ravel()
 
     ax[0].imshow(im, cmap=cm.gray)
     ax[0].set_title('Input image')
 
-    ax[1].imshow(binarise_array(ima), cmap='Greys')
+    # Assuming binarise_array returns an appropriately binarized image
+    ax[1].imshow(ima_binarized, cmap='Greys')  
     ax[1].set_title('Binarized image')
 
     ax[2].imshow(edges, cmap=cm.gray)
@@ -214,3 +217,60 @@ def visualize_process(input_image_path, lines):
 
     plt.tight_layout()
     plt.show()
+
+def visualize_process_separately(input_image_path, output_base_path):
+    # Load the original image
+    im = PIL.Image.open(input_image_path).convert("L")
+    ima = np.array(im)
+    ima = np.array(im).reshape(im.size[::-1])
+    ima = ima[5:-5, 5:-5]
+
+    
+    # Binarize the image
+    threshold = 128
+    ima_binarized = (ima > threshold) * 255
+    
+    # Canny edge detection
+    edges = canny(ima, sigma=0.9, low_threshold=0.1, high_threshold=0.9)
+    
+    # Probabilistic Hough Transform
+    lines = probabilistic_hough_line(edges, threshold=1, line_length=70, line_gap=10)
+    
+    # Step 1: Original Image
+    plt.figure(figsize=(10, 10))
+    plt.imshow(im, cmap='gray')
+    #plt.title('Line Mask')
+    plt.axis('off')
+    plt.savefig(f'{output_base_path}_line_mask.png', dpi=150, bbox_inches='tight', pad_inches=0)
+    plt.show()
+    plt.close()
+    
+    # Step 2: Binarized Image
+    plt.figure(figsize=(10, 10))
+    plt.imshow(ima_binarized, cmap='gray')
+    #plt.title('Binarized Image')
+    plt.axis('off')
+    plt.savefig(f'{output_base_path}_binarized.png', dpi=150, bbox_inches='tight', pad_inches=0)
+    plt.show()
+    plt.close()
+    
+    # Step 3: Canny Edges
+    plt.figure(figsize=(10, 10))
+    plt.imshow(edges, cmap='gray')
+    #plt.title('Canny Edges')
+    plt.axis('off')
+    plt.savefig(f'{output_base_path}_canny_edges.png', dpi=150, bbox_inches='tight', pad_inches=0)
+    plt.show()
+    plt.close()
+    
+    # Step 4: Probabilistic Hough
+    plt.figure(figsize=(10, 10))
+    plt.imshow(im, cmap='gray')  # Show the original image as the background
+    for line in lines:
+        p0, p1 = line
+        plt.plot((p0[0], p1[0]), (p0[1], p1[1]), 'red')  # Plot lines in red
+    #plt.title('Probabilistic Hough Lines')
+    plt.axis('off')
+    plt.savefig(f'{output_base_path}_probabilistic_hough_lines.png', dpi=150, bbox_inches='tight', pad_inches=0)
+    plt.show()
+    plt.close()
