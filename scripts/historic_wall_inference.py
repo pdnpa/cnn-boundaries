@@ -10,6 +10,7 @@ from osgeo import gdal, osr
 import geopandas as gpd
 from shapely.geometry import LineString
 import rasterio
+from rasterio.transform import Affine
 import skimage.measure
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
@@ -166,7 +167,7 @@ def apply_hough_transform(input_image_path, output_folder):
     """
     im = PIL.Image.open(input_image_path).convert("L")
     ima = np.array(im).reshape(im.size[::-1])
-    ima = ima[3:-3, 3:-3]
+    ima = ima[7:-7, 7:-7]
 
     # Apply binarization with the predefined threshold
     ima_bin = binarise_array(ima)
