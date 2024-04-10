@@ -165,26 +165,60 @@ def apply_hough_transform(input_image_path, output_folder):
     """
     Apply Hough Transform to detect lines, transform them to geographic coordinates, and save to a shapefile.
     """
-    im = PIL.Image.open(input_image_path).convert("L")
-    ima = np.array(im).reshape(im.size[::-1])
-    ima = ima[7:-7, 7:-7]
+    #im = PIL.Image.open(input_image_path).convert("L")
+    #ima = np.array(im).reshape(im.size[::-1])
+    #ima = ima[7:-7, 7:-7]
 
     # Apply binarization with the predefined threshold
-    ima_bin = binarise_array(ima)
+    #ima_bin = binarise_array(ima)
 
     # Canny edge detection and Hough Transform
-    edges = canny(ima_bin, sigma=0.9, low_threshold=0.1, high_threshold=0.9)
-    lines = probabilistic_hough_line(edges, threshold=1, line_length=40, line_gap=10)
+    #edges = canny(ima_bin, sigma=0.9, low_threshold=0.1, high_threshold=0.9)
+    #lines = probabilistic_hough_line(edges, threshold=1, line_length=40, line_gap=10)
 
     # Transform lines for shapefile
-    with rasterio.open(input_image_path) as src:
-        srs = src.crs
-        transformed_lines = [LineString([(src.xy(y, x)[0], src.xy(y, x)[1]) for x, y in line]) for line in lines]
-        gdf = gpd.GeoDataFrame(geometry=transformed_lines, crs=srs)
-        output_shapefile = os.path.join(output_folder, os.path.basename(input_image_path).replace("_line_mask.tif", "_hough_lines.shp"))
-        gdf.to_file(output_shapefile)
+    #with rasterio.open(input_image_path) as src:
+    #    srs = src.crs
+    #    transformed_lines = [LineString([(src.xy(y, x)[0], src.xy(y, x)[1]) for x, y in line]) for line in lines]
+    #    gdf = gpd.GeoDataFrame(geometry=transformed_lines, crs=srs)
+    #    output_shapefile = os.path.join(output_folder, os.path.basename(input_image_path).replace("_line_mask.tif", "_hough_lines.shp"))
+    #    gdf.to_file(output_shapefile)
     
+    #return lines  # Return the raw line coordinates for visualization
+def apply_hough_transform(input_image_path, output_folder):
+    with rasterio.open(input_image_path) as src:
+        original_transform = src.transform
+        ima = src.read(1)  # Read the first band into an array
+
+        # Crop the image by removing 7 pixels from each edge
+        cropped_ima = ima[7:-7, 7:-7]
+
+        # Calculate the new geotransform after cropping
+        new_transform = Affine.translation(7, -7) * original_transform
+
+        # Apply binarization with the predefined threshold
+        ima_bin = binarise_array(cropped_ima)  # Ensure you have this function defined
+
+        # Canny edge detection and Hough Transform
+        edges = canny(ima_bin, sigma=0.9, low_threshold=0.1, high_threshold=0.9)
+        lines = probabilistic_hough_line(edges, threshold=1, line_length=40, line_gap=10)
+
+        # Transform lines for shapefile using the NEW geotransform
+        transformed_lines = [
+            LineString([
+                (new_transform * (x, y)) for x, y in line
+            ]) for line in lines
+        ]
+        
+        gdf = gpd.GeoDataFrame(geometry=transformed_lines, crs=src.crs)
+        output_shapefile = os.path.join(
+            output_folder, 
+            os.path.basename(input_image_path).replace("_line_mask.tif", "_hough_lines.shp")
+        )
+        gdf.to_file(output_shapefile)
+
     return lines  # Return the raw line coordinates for visualization
+
 
 def visualize_process(input_image_path, lines):
     im = PIL.Image.open(input_image_path).convert("L")
